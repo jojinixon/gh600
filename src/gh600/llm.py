@@ -31,12 +31,16 @@ class LLMResponse:
     tool_call: ToolCall | None = None
 
 
+DEFAULT_PERSONA = "You are a helpful agent that solves the user's goal, using tools when useful."
+
+
 class LLMClient(Protocol):
     def decide(
         self,
         goal: str,
         history: list[tuple[str, str]],
         tools: list[Tool],
+        persona: str = DEFAULT_PERSONA,
     ) -> LLMResponse: ...
 
 
@@ -55,6 +59,7 @@ class FakeLLM:
         goal: str,
         history: list[tuple[str, str]],
         tools: list[Tool],
+        persona: str = DEFAULT_PERSONA,
     ) -> LLMResponse:
         if not self._script:
             raise RuntimeError("FakeLLM script exhausted")
@@ -79,8 +84,9 @@ class OpenRouterLLM:
     DEFAULT_MODEL = "nex-agi/nex-n2.5-mini:free"
 
     SYSTEM_PROMPT = (
-        "You are an agent that can either call one tool or give a final "
-        "answer.\n\nAvailable tools:\n{tool_list}\n\n"
+        "{persona}\n\n"
+        "You can either call one tool or give a final answer.\n\n"
+        "Available tools:\n{tool_list}\n\n"
         "Respond with EXACTLY one JSON object and nothing else:\n"
         '- To call a tool: {{"tool": "<name>", "arguments": {{...}}}}\n'
         '- To give a final answer: {{"answer": "<your answer>"}}'
@@ -99,10 +105,14 @@ class OpenRouterLLM:
         goal: str,
         history: list[tuple[str, str]],
         tools: list[Tool],
+        persona: str = DEFAULT_PERSONA,
     ) -> LLMResponse:
         tool_list = "\n".join(f"- {t.name}: {t.description}" for t in tools) or "(none)"
         messages = [
-            {"role": "system", "content": self.SYSTEM_PROMPT.format(tool_list=tool_list)}
+            {
+                "role": "system",
+                "content": self.SYSTEM_PROMPT.format(persona=persona, tool_list=tool_list),
+            }
         ]
         for role, content in history:
             messages.append(
@@ -122,8 +132,18 @@ class OpenRouterLLM:
         content = response.json()["choices"][0]["message"]["content"]
         return self._parse(content)
 
-    @staticmethod
-    def _parse(content: str) -> LLMResponse:
+    # Small free models sometimes leak a raw stop/end token (e.g.
+    # "<CPA_DONE>", "<|endoftext|>") into the visible text instead of
+    # having it swallowed by the API, so it has to be stripped here.
+    _SPECIAL_TOKEN_RE = re.compile(r"\s*<[^<>\s]{1,40}>\s*")
+
+    @classmethod
+    def _strip_special_tokens(cls, text: str) -> str:
+        return cls._SPECIAL_TOKEN_RE.sub(" ", text).strip()
+
+    @classmethod
+    def _parse(cls, content: str) -> LLMResponse:
+        content = cls._strip_special_tokens(content)
         match = re.search(r"\{.*\}", content, re.DOTALL)
         if not match:
             return LLMResponse(content=content)
@@ -138,4 +158,4 @@ class OpenRouterLLM:
                 content="",
                 tool_call=ToolCall(name=data["tool"], arguments=data.get("arguments", {})),
             )
-        return LLMResponse(content=data.get("answer", content))
+        return LLMResponse(content=cls._strip_special_tokens(data.get("answer", content)))

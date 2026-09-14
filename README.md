@@ -16,7 +16,13 @@ concepts by building them from scratch:
     (a tool call or a final answer) since free OpenRouter models don't
     support native tool calling.
 - **Agent** ([src/gh600/agent.py](src/gh600/agent.py)) — a minimal think → act → observe
-  loop tying the above together.
+  loop tying the above together. Each `Agent` has its own `persona`
+  (a short instruction string) and `tools`, so two agents built from
+  the same class can behave completely differently.
+- **Orchestrator** ([src/gh600/orchestrator.py](src/gh600/orchestrator.py)) — the simplest
+  multi-agent pattern: a fixed handoff between a `Researcher` agent
+  (gathers facts with the `lookup_fact` tool) and a `Writer` agent
+  (turns those facts into a final answer, no tools).
 
 ## Setup
 
@@ -44,6 +50,12 @@ Tests use `FakeLLM` only, so they run offline with no API key.
 python examples\run_agent.py "What is 12 + 30?"
 ```
 
+## Run the two-agent (Researcher -> Writer) pipeline
+
+```powershell
+python examples\run_multi_agent.py "What is Python?"
+```
+
 ## Suggested path through the course
 
 1. Read [tests/test_agent.py](tests/test_agent.py) to see the agent loop in action with
@@ -51,8 +63,12 @@ python examples\run_agent.py "What is 12 + 30?"
 2. Run [examples/run_agent.py](examples/run_agent.py) to see the same loop driven by a real
    model through `OpenRouterLLM`.
 3. Add a tool in `tools.py` and a test for it.
-4. Implement another `LLMClient` (e.g. `GitHubModelsClient` or
+4. Read [tests/test_orchestrator.py](tests/test_orchestrator.py) and run
+   [examples/run_multi_agent.py](examples/run_multi_agent.py) to see two agents with
+   different personas hand work off to each other.
+5. Implement another `LLMClient` (e.g. `GitHubModelsClient` or
    `AzureOpenAIClient`) in `llm.py` once a lesson introduces that
    provider — same pattern as `OpenRouterLLM`.
-5. Extend `Agent` with planning, multi-step tool chains, or
-   multi-agent orchestration as later lessons cover them.
+6. Extend `Orchestrator` toward richer patterns — routing between more
+   than two agents, parallel agents, or a debate/critique loop — as
+   later lessons cover them.

@@ -32,3 +32,29 @@ DEFAULT_TOOLS = [
         func=get_word_length,
     ),
 ]
+
+_FACTS = {
+    "python": "Python is a high-level, interpreted programming language created by Guido van Rossum in 1991.",
+    "agent": (
+        "In agentic AI, an agent perceives its environment, decides on an "
+        "action (often via an LLM), and acts - repeating in a loop."
+    ),
+    "github": "GitHub is a platform for hosting and collaborating on Git repositories.",
+    "openrouter": (
+        "OpenRouter is a unified API that routes requests to many different "
+        "LLM providers, including free-tier models."
+    ),
+}
+
+
+def lookup_fact(topic: str) -> str:
+    return _FACTS.get(topic.lower(), f"No fact found for '{topic}'.")
+
+
+RESEARCH_TOOLS = [
+    Tool(
+        name="lookup_fact",
+        description="Look up a short fact about a topic (e.g. python, agent, github, openrouter).",
+        func=lookup_fact,
+    ),
+]

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .llm import LLMClient, LLMResponse
+from .llm import DEFAULT_PERSONA, LLMClient, LLMResponse
 from .memory import Memory
 from .tools import Tool
 
@@ -14,6 +14,7 @@ class Agent:
     tools: list[Tool]
     memory: Memory = field(default_factory=Memory)
     max_steps: int = 5
+    persona: str = DEFAULT_PERSONA
 
     def _tool_by_name(self, name: str) -> Tool | None:
         return next((t for t in self.tools if t.name == name), None)
@@ -26,6 +27,7 @@ class Agent:
                 goal=goal,
                 history=self.memory.history(),
                 tools=self.tools,
+                persona=self.persona,
             )
 
             if response.tool_call is None:
