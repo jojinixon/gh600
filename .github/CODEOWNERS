@@ -1,3 +1,3 @@
 # Sensitive paths need owner review
-/.github/   @jojinixon
-/infra/     @jojinixon
+/.github/ @jojinixon
+/infra/ @jojinixon
