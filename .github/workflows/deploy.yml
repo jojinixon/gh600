@@ -1,0 +1,14 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Deploying with secret length ${#DEPLOY_KEY}"
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
